@@ -7,6 +7,18 @@ from ultralytics import YOLO
 import argparse
 from pathlib import Path
 import cv2
+import torch
+
+
+def get_device():
+    """Auto-detect the best available device (GPU/CPU)."""
+    if torch.cuda.is_available():
+        device = "0"  # Use first GPU
+        print(f"CUDA available! Using GPU: {torch.cuda.get_device_name(0)}")
+    else:
+        device = "cpu"
+        print("CUDA not available. Using CPU.")
+    return device
 
 
 def predict(
@@ -15,7 +27,7 @@ def predict(
     imgsz: int = 512,
     conf: float = 0.25,
     iou: float = 0.7,
-    device: str = "0",
+    device: str = None,  # Auto-detect if None
     save: bool = True,
     save_txt: bool = False,
     save_crop: bool = False,
@@ -32,7 +44,7 @@ def predict(
         imgsz: Input image size
         conf: Confidence threshold
         iou: IoU threshold for NMS
-        device: CUDA device
+        device: CUDA device (None for auto-detect)
         save: Save prediction images
         save_txt: Save results to text files
         save_crop: Save cropped predictions
@@ -40,6 +52,10 @@ def predict(
         project: Project directory for saving results
         name: Prediction run name
     """
+    # Auto-detect device if not specified
+    if device is None:
+        device = get_device()
+    
     # Load trained model
     print(f"Loading model: {model_path}")
     model = YOLO(model_path)
@@ -123,8 +139,8 @@ def main():
         help="IoU threshold for NMS"
     )
     parser.add_argument(
-        "--device", type=str, default="0",
-        help="CUDA device (0, 0,1, cpu)"
+        "--device", type=str, default=None,
+        help="CUDA device (0, 0,1, cpu, or leave empty for auto-detect)"
     )
     parser.add_argument(
         "--save", action="store_true", default=True,

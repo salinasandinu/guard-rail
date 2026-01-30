@@ -6,6 +6,18 @@ Train a YOLOv8 instance segmentation model to detect guardrails.
 from ultralytics import YOLO
 import argparse
 from pathlib import Path
+import torch
+
+
+def get_device():
+    """Auto-detect the best available device (GPU/CPU)."""
+    if torch.cuda.is_available():
+        device = "0"  # Use first GPU
+        print(f"CUDA available! Using GPU: {torch.cuda.get_device_name(0)}")
+    else:
+        device = "cpu"
+        print("CUDA not available. Using CPU.")
+    return device
 
 
 def train(
@@ -14,7 +26,7 @@ def train(
     epochs: int = 100,
     imgsz: int = 512,
     batch: int = 16,
-    device: str = "cpu",
+    device: str = None,  # Auto-detect if None
     project: str = "runs/train",
     name: str = "guardrail_seg",
     resume: bool = False,
@@ -28,13 +40,32 @@ def train(
         epochs: Number of training epochs
         imgsz: Input image size
         batch: Batch size (-1 for auto)
-        device: CUDA device (e.g., '0' or '0,1' for multi-GPU, 'cpu' for CPU)
+        device: CUDA device (e.g., '0' or '0,1' for multi-GPU, 'cpu' for CPU, None for auto)
         project: Project directory for saving results
         name: Experiment name
         resume: Resume training from last checkpoint
     """
+    # Auto-detect device if not specified
+    if device is None:
+        device = get_device()
+    
     # Select pretrained model based on size (segmentation models)
     model_name = f"yolov8{model_size}-seg.pt"
+    
+    # Print all configurations before training
+    print(f"\n{'='*60}")
+    print("TRAINING CONFIGURATION")
+    print(f"{'='*60}")
+    print(f"  Model:          {model_name}")
+    print(f"  Data config:    {data_yaml}")
+    print(f"  Device:         {device}")
+    print(f"  Epochs:         {epochs}")
+    print(f"  Image size:     {imgsz}x{imgsz}")
+    print(f"  Batch size:     {batch}")
+    print(f"  Project:        {project}")
+    print(f"  Experiment:     {name}")
+    print(f"  Resume:         {resume}")
+    print(f"{'='*60}\n")
     
     print(f"Loading pretrained model: {model_name}")
     model = YOLO(model_name)
@@ -138,8 +169,8 @@ def main():
         help="Batch size (-1 for auto)"
     )
     parser.add_argument(
-        "--device", type=str, default="cpu",
-        help="CUDA device (0, 0,1, cpu)"
+        "--device", type=str, default=None,
+        help="CUDA device (0, 0,1, cpu, or leave empty for auto-detect)"
     )
     parser.add_argument(
         "--project", type=str, default="runs/train",
